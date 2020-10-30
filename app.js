@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-
 const mongoose = require("mongoose");
+const _= require("lodash");
 
 mongoose.connect("mongodb://localhost:27017/todolistDB", {
   useUnifiedTopology: true,
@@ -16,10 +16,7 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const itemSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Enter event"],
-  },
+  name: String,
 });
 
 const Item = mongoose.model("Item", itemSchema);
@@ -40,10 +37,7 @@ const defaultItems = [item1, item2, item3];
 // List Schema
 
 const listSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
+  name: String,
   items: [itemSchema],
 });
 
@@ -61,14 +55,12 @@ app.get("/", (req, res) => {
       });
       res.redirect("/");
     } else {
-      if (err) {
-        console.log(err);
-      } else {
+      
         res.render("list", {
           listTitle: "Today",
           newListItems: foundItems,
         });
-      }
+      
     }
   });
 });
@@ -90,8 +82,9 @@ app.post("/", (req, res) => {
     List.findOne({name:listName},(err,foundList)=>{
       foundList.items.push(item);
       foundList.save();
+      res.redirect("/"+listName);;
     });
-    res.redirect("/"+listName);;
+    
   }
   
 });
@@ -102,14 +95,15 @@ app.post("/delete", (req, res) => {
   const listTitle = req.body.listTitle;
 
   if(listTitle==="Today"){
-    Item.findByIdAndDelete(deleteItemId, (err) => {
+    Item.findByIdAndRemove(deleteItemId, (err) => {
       if (err) {
         console.log(err);
       } else {
         console.log("documnet deleted sucessfully");
+        res.redirect("/");
       }
     });
-    res.redirect("/");
+    
   }else{
     List.findOneAndUpdate({name:listTitle},{$pull:{items:{_id:deleteItemId}}},(err,foundList)=>{
       if(!err){
@@ -124,25 +118,24 @@ app.post("/delete", (req, res) => {
 });
 
 app.get("/:customListName", (req, res) => {
-  const customListName = req.params.customListName;
+  const customListName = _.capitalize(req.params.customListName);
 
   List.findOne({ name: customListName }, (err, foundList) => {
     if (!err) {
-      if (foundList) {
-        res.render("list", {
-          listTitle: foundList.name,
-          newListItems: foundList.items,
-        });
-      } else {
+      if (!foundList) {
         const list = new List({
           name: customListName,
           items: defaultItems,
         });
         list.save();
         res.redirect("/" + customListName);
+        
+      } else {
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items,
+        });
       }
-    } else {
-      console.log(err);
     }
   });
 });
