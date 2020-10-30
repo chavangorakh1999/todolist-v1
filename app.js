@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const _= require("lodash");
 
-mongoose.connect("mongodb://localhost:27017/todolistDB", {
+mongoose.connect("mongodb+srv://grc_sr:Western@12@grcs-developers-club.g7k6t.mongodb.net/todolistDB", {
   useUnifiedTopology: true,
   useNewUrlParser: true,
 });
@@ -147,5 +147,4 @@ app.get("/about", (req, res) => {
 
 let port = process.env.PORT || 3000;
 app.listen(port, (req, res) => {
-  console.log("Server is running on port " + port);
 });
