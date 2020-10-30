@@ -22,7 +22,6 @@ const itemSchema = new mongoose.Schema({
   },
 });
 
-const workItem = mongoose.model("workItem", itemSchema);
 const Item = mongoose.model("Item", itemSchema);
 
 const item1 = new Item({
@@ -37,6 +36,18 @@ const item3 = new Item({
 });
 
 const defaultItems = [item1, item2, item3];
+
+// List Schema
+
+const listSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  items: [itemSchema],
+});
+
+const List = mongoose.model("List", listSchema);
 
 app.get("/", (req, res) => {
   Item.find({}, (err, foundItems) => {
@@ -63,74 +74,79 @@ app.get("/", (req, res) => {
 });
 
 app.post("/", (req, res) => {
-  let item = req.body.listItem;
-  if (req.body.list === "Work") {
-    workItem.create({name:item},(err)=>{
-      if(err){
-        console.log(err);
-      }else{
-        console.log("work item added sucessfully");
-      }
-    });
-    res.redirect("/work");
-  } else {
-    Item.create({ name: item }, (err) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log("item updated sucessfully");
-      }
-    });
-    res.redirect("/");
-  }
-});
-app.post("/delete",(req,res)=>{
-  const deleteItemId=req.body.checkbox;
-  if(workItem.exists(deleteItemId))
-  {
-    workItem.findByIdAndDelete(deleteItemId,(err)=>{
-      if(err){
-        console.log(err);
-      }else{
-        console.log("documnet deleted sucessfully");
-      }
-    });
-    res.redirect('/work');
-  }else{
-    Item.findByIdAndDelete(deleteItemId,(err)=>{
-      if(err){
-        console.log(err);
-      }else{
-        console.log("documnet deleted sucessfully");
-      }
-    });
-    res.redirect("/");
-  }
-});
+  let itemName = req.body.listItem;
+  let listName = req.body.list;
 
-app.get("/work", (req, res) => {
-  workItem.find((err, foundworkItems) => {
-    if (foundworkItems.length === 0) {
-      workItem.insertMany(defaultItems, (err) => {
-        if (err) {
-          console.log(err);
-        } else {
-          console.log("Inserted documnent sucessfully");
-        }
-      });
-    } else {
-      if (err) {
-        console.log(err);
-      } else {
-        res.render("list", {
-          listTitle: "Work",
-          newListItems: foundworkItems,
-        });
-      }
-    }
+  const item = new Item({
+    name: itemName,
   });
+
+  if(listName === "Today"){
+    
+    item.save();
+
+    res.redirect("/");
+  }else{
+    List.findOne({name:listName},(err,foundList)=>{
+      foundList.items.push(item);
+      foundList.save();
+    });
+    res.redirect("/"+listName);;
+  }
   
 });
+
+
+app.post("/delete", (req, res) => {
+  const deleteItemId = req.body.checkbox;
+  const listTitle = req.body.listTitle;
+
+  if(listTitle==="Today"){
+    Item.findByIdAndDelete(deleteItemId, (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("documnet deleted sucessfully");
+      }
+    });
+    res.redirect("/");
+  }else{
+    List.findOneAndUpdate({name:listTitle},{$pull:{items:{_id:deleteItemId}}},(err,foundList)=>{
+      if(!err){
+        res.redirect("/"+listTitle);
+      }
+     
+    });
+  }
+
+  
+  
+});
+
+app.get("/:customListName", (req, res) => {
+  const customListName = req.params.customListName;
+
+  List.findOne({ name: customListName }, (err, foundList) => {
+    if (!err) {
+      if (foundList) {
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items,
+        });
+      } else {
+        const list = new List({
+          name: customListName,
+          items: defaultItems,
+        });
+        list.save();
+        res.redirect("/" + customListName);
+      }
+    } else {
+      console.log(err);
+    }
+  });
+});
+
 
 app.get("/about", (req, res) => {
   res.render("about");
