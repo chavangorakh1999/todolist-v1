@@ -84,6 +84,29 @@ app.post("/", (req, res) => {
     res.redirect("/");
   }
 });
+app.post("/delete",(req,res)=>{
+  const deleteItemId=req.body.checkbox;
+  if(workItem.exists(deleteItemId))
+  {
+    workItem.findByIdAndDelete(deleteItemId,(err)=>{
+      if(err){
+        console.log(err);
+      }else{
+        console.log("documnet deleted sucessfully");
+      }
+    });
+    res.redirect('/work');
+  }else{
+    Item.findByIdAndDelete(deleteItemId,(err)=>{
+      if(err){
+        console.log(err);
+      }else{
+        console.log("documnet deleted sucessfully");
+      }
+    });
+    res.redirect("/");
+  }
+});
 
 app.get("/work", (req, res) => {
   workItem.find((err, foundworkItems) => {
